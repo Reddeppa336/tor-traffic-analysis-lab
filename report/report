@@ -1,0 +1,100 @@
+lab: your machine using Tor?
+
+you are a SOC analyst
+
+A user reports slow internet. The security team suspects Tor is running on the machine.
+Your job:
+1. Identify Tor processes
+2. Find Tor ports
+3. Discover relay connections
+4. Capture evidence
+5. Write an incident report
+
+step1:Host Enumeration
+  identify running process.
+
+"ps aux | grep tor"
+
+Expected:
+-->>debian-tor 1234 ...../user/bin/tor
+
+step2:Find Listening ports
+
+"ss -tulnp"
+
+look for:
+-->>127.0.0.1:9050
+    127.0.0.1:9051
+
+investigation notes:
+port        purpose
+9050        SOCKS Proxy
+9051        Control port
+
+step3: Map Process to Network Connections
+
+"sudo ss -tpn"  (or)   "sudo lsof -i"
+Example:
+-->>tor 1234 ESTAB 185.x.x.x:443
+
+step4:Identify Tor Relays
+check current public ip
+"torsocks curl ifconfig.me"
+
+now collect relay IPs:
+"sudo ss -tpn | grep ESTAB"
+
+step5:Packet Capture
+open wireshark:
+"sudo wireshark"
+
+capture:
+"wlan0"
+
+generate Tor traffic:
+"torsocks curl https://check.torproject.org"
+
+step6:Traffic Hunting
+"sudo tcpdump -i wlan0"
+
+filter"
+"sudo tcpdump -i wlan0 host <relay-ip>
+
+look for: tcp syn
+          tcp ack
+          tls handshake
+
+
+step7:Build a Timeline
+"watch -n 2 'ss -tpn' "
+
+step8: Log Analysis
+"journalctl -u tor"
+
+
+step9: Threat Hunting Challenge
+"ss -tulnp"
+
+Step 10: SOC Incident Report
+Write:
+
+Executive Summary
+
+Host Investigation:
+- Process identified
+- PID identified
+- Listening ports identified
+
+Network Investigation:
+- Relay IPs observed
+- TLS traffic observed
+
+Assessment:
+Tor activity confirmed
+
+Recommendation:
+Verify if Tor usage is authorized
+Monitor outbound relay connections
+
+
+note: this topic only how internet suspects Tor is running on the machine
